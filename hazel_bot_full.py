@@ -353,4 +353,5 @@ async def on_command_error(ctx, error):
         raise error
 
 # BẮT ĐẦU BOT - Thay YOUR_TOKEN bằng token của bạn
-bot.run("MTM1NTE0MTU3NjQ2ODIwMTU1Mw.G5oWsg.nDRWWwZzkchX22kIo0SOXl5rS5gilb4eTx-XkY")
+import os
+bot.run(os.getenv("MTM1NTE0MTU3NjQ2ODIwMTU1Mw.GdB8DZ.iv0VW_HPheuxoOKKBR3lg2qvayXjVSU09mgtxg"))
