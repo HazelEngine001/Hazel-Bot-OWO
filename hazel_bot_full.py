@@ -8,6 +8,8 @@ import os  # Thêm để lấy token từ biến môi trường
 
 intents = discord.Intents.default()
 intents.message_content = True
+from keep_alive import keep_alive
+keep_alive()
 
 bot = commands.Bot(command_prefix="h", intents=intents, help_command=None)
 
