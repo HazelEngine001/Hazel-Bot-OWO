@@ -65,7 +65,7 @@ async def show_commands(ctx):
     help_text = """
 📜 **Danh sách lệnh Hazel_Bot:**
 
-💰 Tiền tệ:
+💰 __**Tiền tệ:**__
 - `hcf <số tiền> <heads/tails>` – Cược tung đồng xu
 - `hdaily` – Nhận 50.000 icoin mỗi ngày
 - `hcheckin` – Điểm danh mỗi ngày để nhận icoin
@@ -73,19 +73,27 @@ async def show_commands(ctx):
 - `hcash` – Xem số dư tiền mặt và ngân hàng
 - `hgive <@user> <số tiền>` – Chuyển tiền cho người khác
 
-🏦 Ngân hàng:
+🏦 __**Ngân hàng:**__
 - `hdep <số tiền>` – Gửi tiền vào ngân hàng
 - `hwith <số tiền>` – Rút tiền từ ngân hàng
 
-🎲 Minigame:
+🎲 __**Minigame:**__
 - `hslot <số tiền>` – Máy quay slot
 - `hnumber <1-10>` – Đoán số từ 1 đến 10
+- `hbc <số tiền>` – Bài cào ba lá
+- `htx <tài/xỉu> <số tiền>` – Chơi tài xỉu
+- `hloto <số 00-99> <số tiền>` – Xổ số lô tô
 
-🏆 Xếp hạng:
+🕵️‍♂️ __**Cướp & Báo công an:**__
+- `hrob @người chơi` – Cướp icoin của người khác (10 phút cooldown)
+- `hreport` – Báo công an nếu bạn bị cướp gần đây (15 phút cooldown)
+
+🏆 __**Xếp hạng:**__
 - `htop cash` – Top người nhiều tiền nhất
 - `htop level` – Top người có cấp cao nhất
 """
     await ctx.send(help_text)
+
 
 @bot.command(name="cf")
 @commands.cooldown(1, 10, commands.BucketType.user)
@@ -105,7 +113,7 @@ async def cf(ctx, amount: int, choice: str = None):
     else:
         choice = choice.lower()
         if choice not in ["heads", "tails"]:
-            return await ctx.send("❌ Lựa chọn phải là 'heads' hoặc 'tails' nếu bạn ghi thêm.")
+            return await ctx.send("❌ Lựa chọn phải là 'heads' hoặc 'tails'.")
 
     icon_map = {"heads": "🟡", "tails": "🟢"}
     spin_icons = ["🟡", "🟢"]
@@ -123,9 +131,8 @@ async def cf(ctx, amount: int, choice: str = None):
     icon_result = icon_map[result]
 
     if choice == result:
-        win_amount = amount * 2
-        update_balance(user_id, win_amount)
-        final_msg = f"{user_name} đặt cược {amount:,} icoin và chọn {choice.capitalize()}\n\nKết quả là {icon_result} và bạn **thắng {win_amount:,} icoin**!"
+        update_balance(user_id, amount)
+        final_msg = f"{user_name} đặt cược {amount:,} icoin và chọn {choice.capitalize()}\n\nKết quả là {icon_result} và bạn **thắng {amount:,} icoin**!"
     else:
         update_balance(user_id, -amount)
         final_msg = f"{user_name} đặt cược {amount:,} icoin và chọn {choice.capitalize()}\n\nKết quả là {icon_result} và bạn mất hết tiền cược."
@@ -155,17 +162,17 @@ async def cfall(ctx):
             await message.edit(content=f"{user_name} đặt cược {amount:,} icoin và chọn {user_choice.capitalize()}\n\nKết quả là {icon}...")
 
     await asyncio.sleep(0.3)
-    icon_result = "🟡"
+    icon_result = {"heads": "🟡", "tails": "🟢"}[result]
 
     if user_choice == result:
-        win_amount = amount * 2
-        update_balance(user_id, win_amount)
-        final_msg = f"{user_name} đặt cược {amount:,} icoin và chọn {user_choice.capitalize()}\n\nKết quả là {icon_result} và bạn **thắng {win_amount:,} icoin**!"
+        update_balance(user_id, amount)
+        final_msg = f"{user_name} đặt cược {amount:,} icoin và chọn {user_choice.capitalize()}\n\nKết quả là {icon_result} và bạn **thắng {amount:,} icoin**!"
     else:
         update_balance(user_id, -amount)
         final_msg = f"{user_name} đặt cược {amount:,} icoin và chọn {user_choice.capitalize()}\n\nKết quả là {icon_result} và bạn mất hết tiền cược."
 
     await message.edit(content=final_msg)
+
 
 @bot.command()
 async def daily(ctx):
@@ -174,13 +181,16 @@ async def daily(ctx):
     current = int(time.time())
     c.execute("SELECT last_daily FROM users WHERE user_id = ?", (user_id,))
     last = c.fetchone()[0]
+    
     if current - last >= 86400:
-        update_balance(user_id, 50000)
+        amount = random.randint(50000, 500000)
+        update_balance(user_id, amount)
         c.execute("UPDATE users SET last_daily = ? WHERE user_id = ?", (current, user_id))
         conn.commit()
-        await ctx.send("✅ Bạn đã nhận 50,000 icoin mỗi ngày.")
+        await ctx.send(f"🎁 Bạn đã nhận **{amount:,} icoin** từ phần thưởng mỗi ngày!")
     else:
-        await ctx.send("⏳ Bạn phải chờ 24h để nhận tiếp.")
+        await ctx.send("⏳ Bạn đã nhận rồi, hãy quay lại sau 24h để nhận tiếp.")
+
 
 @bot.command()
 async def checkin(ctx):
@@ -231,7 +241,10 @@ async def hw(ctx):
     c.execute("SELECT last_w FROM users WHERE user_id = ?", (user_id,))
     last = c.fetchone()[0]
 
-    if current - last >= 600:
+    cooldown = 600  # 10 phút
+    remaining = cooldown - (current - last)
+
+    if remaining <= 0:
         reward = random.randint(1000, 300000)
         update_balance(user_id, reward)
         c.execute("UPDATE users SET last_w = ? WHERE user_id = ?", (current, user_id))
@@ -248,7 +261,10 @@ async def hw(ctx):
         action = random.choice(actions)
         await ctx.send(f"{user_name} {action} {reward:,}Cash 🟡")
     else:
-        await ctx.send("⏳ Bạn cần đợi 10 phút để dùng lại `hw`.")
+        minutes = remaining // 60
+        seconds = remaining % 60
+        await ctx.send(f"⏳ Bạn cần chờ **{minutes} phút {seconds} giây** nữa để dùng lại `hw`.")
+
 
 @bot.command()
 async def dep(ctx, amount: int):
