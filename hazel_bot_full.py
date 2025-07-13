@@ -320,8 +320,9 @@ async def top(ctx, mode="cash"):
             msg += f"{i}. {user.display_name} – Cấp {value}\n"
     await ctx.send(msg)
 
+
 @bot.command(name="rob")
-@commands.cooldown(1, 600, commands.BucketType.user)  # 600 giây = 10 phút
+@commands.cooldown(1, 600, commands.BucketType.user)  # 10 phút cooldown
 async def hrob(ctx, member: discord.Member):
     robber_id = ctx.author.id
     victim_id = member.id
@@ -342,17 +343,50 @@ async def hrob(ctx, member: discord.Member):
     update_balance(victim_id, -amount)
     update_balance(robber_id, amount)
 
+    c.execute("UPDATE users SET last_robbed_by = ?, last_robbed_time = ? WHERE user_id = ?", (robber_id, int(time.time()), victim_id))
+    conn.commit()
+
     await ctx.send(f"🦹‍♂️ {ctx.author.display_name} đã cướp {amount:,} icoin từ {member.display_name} thành công!")
 
+@bot.command(name="report")
+@commands.cooldown(1, 900, commands.BucketType.user)  # 15 phút cooldown
+async def hreport(ctx):
+    user_id = ctx.author.id
+    create_user(user_id)
+
+    c.execute("SELECT last_robbed_by, last_robbed_time FROM users WHERE user_id = ?", (user_id,))
+    data = c.fetchone()
+    if not data or data[0] == 0:
+        return await ctx.send("🚓 Bạn chưa bị ai cướp gần đây để báo công an.")
+
+    robber_id, robbed_time = data
+    now = int(time.time())
+
+    if now - robbed_time > 600:
+        return await ctx.send("⌛ Đã quá 10 phút kể từ khi bị cướp. Công an không giúp được nữa.")
+
+    if random.randint(1, 100) <= 40:
+        refund = random.randint(10000, 300000)
+        update_balance(user_id, refund)
+        update_balance(robber_id, -refund)
+        c.execute("UPDATE users SET last_robbed_by = 0, last_robbed_time = 0 WHERE user_id = ?", (user_id,))
+        conn.commit()
+        robber_user = await bot.fetch_user(robber_id)
+        await ctx.send(f"✅ Công an đã bắt được {robber_user.display_name} và trả lại bạn {refund:,} icoin!")
+    else:
+        await ctx.send("❌ Công an không tìm được thủ phạm. Bạn không lấy lại được tiền.")
 
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
-        # Riêng hrob thì hiển thị đẹp hơn
         if ctx.command.name == "rob":
             minutes = int(error.retry_after) // 60
             seconds = int(error.retry_after) % 60
             return await ctx.send(f"⏳ Bạn phải chờ {minutes} phút {seconds} giây nữa để dùng lại `hrob`.")
+        elif ctx.command.name == "report":
+            minutes = int(error.retry_after) // 60
+            seconds = int(error.retry_after) % 60
+            return await ctx.send(f"⏳ Bạn phải chờ {minutes} phút {seconds} giây nữa để dùng lại `hreport`.")
         else:
             await ctx.send(f"⏳ Vui lòng đợi {error.retry_after:.1f} giây trước khi dùng lại lệnh.")
     else:
@@ -373,6 +407,115 @@ async def on_command_error(ctx, error):
         await ctx.send(f"⏳ Vui lòng đợi {error.retry_after:.1f} giây trước khi dùng lại lệnh.")
     else:
         raise error
+
+@bot.command(name="baicao")
+@commands.cooldown(1, 15, commands.BucketType.user)  # 15 giây chờ
+async def hbaicao(ctx, amount: int):
+    user_id = ctx.author.id
+    create_user(user_id)
+
+    if amount <= 0:
+        return await ctx.send("❌ Số tiền cược phải lớn hơn 0.")
+
+    balance = get_balance(user_id)
+    if balance < amount:
+        return await ctx.send("❌ Bạn không đủ icoin để cược.")
+
+    # Trừ tiền cược tạm thời
+    update_balance(user_id, -amount)
+
+    # Chia 3 lá bài (giá trị từ 1 đến 13, tương ứng A → K)
+    cards = [random.randint(1, 13) for _ in range(3)]
+    total = sum(min(card, 10) for card in cards) % 10
+
+    # Tính kết quả
+    result_msg = f"🃏 Bài của bạn: {cards[0]}, {cards[1]}, {cards[2]} (Tổng nút: {total})\n"
+    
+    if total >= 7:
+        winnings = int(amount * 1.5)
+        update_balance(user_id, winnings + amount)  # Trả lại tiền cược + thưởng
+        result_msg += f"🎉 Bạn thắng! Nhận được {winnings:,} icoin!"
+    elif total == 0:
+        result_msg += f"💀 Bù trừ sạch bách! Bạn mất {amount:,} icoin!"
+    else:
+        result_msg += f"😢 Thua rồi! Bạn mất {amount:,} icoin."
+
+    await ctx.send(result_msg)
+
+
+@bot.command(name="taixiu")
+@commands.cooldown(1, 15, commands.BucketType.user)  # 15 giây chờ
+async def htaixiu(ctx, choice: str, amount: int):
+    user_id = ctx.author.id
+    create_user(user_id)
+
+    choice = choice.lower()
+    if choice not in ["tài", "xỉu"]:
+        return await ctx.send("❌ Lựa chọn không hợp lệ! Vui lòng chọn `tài` hoặc `xỉu`.")
+
+    if amount <= 0:
+        return await ctx.send("❌ Số tiền cược phải lớn hơn 0.")
+
+    balance = get_balance(user_id)
+    if balance < amount:
+        return await ctx.send("❌ Bạn không đủ icoin để cược.")
+
+    # Trừ tiền cược tạm thời
+    update_balance(user_id, -amount)
+
+    # Gieo xúc xắc
+    dice = [random.randint(1, 6) for _ in range(3)]
+    total = sum(dice)
+    result = "xỉu" if 4 <= total <= 10 else "tài"
+
+    result_msg = (
+        f"🎲 Kết quả: {dice[0]} + {dice[1]} + {dice[2]} = **{total}** → **{result.upper()}**\n"
+        f"🧠 Bạn chọn: **{choice.upper()}**\n"
+    )
+
+    if choice == result:
+        update_balance(user_id, amount * 2)
+        result_msg += f"🎉 Bạn đã thắng và nhận được {amount:,} icoin!"
+    else:
+        result_msg += f"💸 Bạn đã thua và mất {amount:,} icoin!"
+
+    await ctx.send(result_msg)
+
+
+@bot.command(name="loto")
+@commands.cooldown(1, 15, commands.BucketType.user)  # 15 giây cooldown mỗi người dùng
+async def hloto(ctx, number: int, amount: int):
+    user_id = ctx.author.id
+    create_user(user_id)
+
+    if number < 0 or number > 99:
+        return await ctx.send("❌ Vui lòng chọn số từ 0 đến 99.")
+
+    if amount <= 0:
+        return await ctx.send("❌ Số tiền cược phải lớn hơn 0.")
+
+    balance = get_balance(user_id)
+    if balance < amount:
+        return await ctx.send("❌ Bạn không đủ icoin để cược.")
+
+    # Trừ tiền cược
+    update_balance(user_id, -amount)
+
+    # Quay số
+    lucky = random.randint(0, 99)
+
+    result_msg = f"🎰 Kết quả xổ số: **{lucky:02d}**\n🎯 Bạn chọn: **{number:02d}**\n"
+
+    if number == lucky:
+        winnings = amount * 70
+        update_balance(user_id, winnings)
+        result_msg += f"🎉 Chúc mừng! Bạn đã trúng số và nhận được {winnings:,} icoin!"
+    else:
+        result_msg += f"💸 Rất tiếc, bạn không trúng. Mất {amount:,} icoin."
+
+    await ctx.send(result_msg)
+
+
 
 # ✅ Chạy bot bằng biến môi trường
 bot.run(os.getenv("DISCORD_TOKEN"))
