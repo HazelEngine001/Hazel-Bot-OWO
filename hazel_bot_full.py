@@ -320,6 +320,44 @@ async def top(ctx, mode="cash"):
             msg += f"{i}. {user.display_name} – Cấp {value}\n"
     await ctx.send(msg)
 
+@bot.command(name="rob")
+@commands.cooldown(1, 600, commands.BucketType.user)  # 600 giây = 10 phút
+async def hrob(ctx, member: discord.Member):
+    robber_id = ctx.author.id
+    victim_id = member.id
+
+    if robber_id == victim_id:
+        return await ctx.send("❌ Bạn không thể cướp chính mình.")
+
+    create_user(robber_id)
+    create_user(victim_id)
+
+    c.execute("SELECT balance FROM users WHERE user_id = ?", (victim_id,))
+    victim_balance = c.fetchone()[0]
+
+    if victim_balance < 10000:
+        return await ctx.send(f"❌ {member.display_name} không có đủ icoin để bị cướp (cần ít nhất 10,000).")
+
+    amount = random.randint(10000, min(1000000, victim_balance))
+    update_balance(victim_id, -amount)
+    update_balance(robber_id, amount)
+
+    await ctx.send(f"🦹‍♂️ {ctx.author.display_name} đã cướp {amount:,} icoin từ {member.display_name} thành công!")
+
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        # Riêng hrob thì hiển thị đẹp hơn
+        if ctx.command.name == "rob":
+            minutes = int(error.retry_after) // 60
+            seconds = int(error.retry_after) % 60
+            return await ctx.send(f"⏳ Bạn phải chờ {minutes} phút {seconds} giây nữa để dùng lại `hrob`.")
+        else:
+            await ctx.send(f"⏳ Vui lòng đợi {error.retry_after:.1f} giây trước khi dùng lại lệnh.")
+    else:
+        raise error
+
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def addmoney(ctx, member: discord.Member, amount: int):
