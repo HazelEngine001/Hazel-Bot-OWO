@@ -1,16 +1,9 @@
 from flask import Flask
-import threading
-
-app = Flask('')
+app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot is running!"
+    return 'Bot is running!'
 
-def run():
-    # Đảm bảo Flask lắng nghe cổng 10000
-    app.run(host='0.0.0.0', port=10000)
-
-def keep_alive():
-    t = threading.Thread(target=run)
-    t.start()
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
