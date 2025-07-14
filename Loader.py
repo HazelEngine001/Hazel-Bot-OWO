@@ -585,13 +585,19 @@ bot.setup_hook = on_ready
 intents = discord.Intents.default()
 intents.message_content = True
 
+# Lấy token từ biến môi trường
+token = os.getenv('DISCORD_TOKEN')
+
+if token is None:
+    raise ValueError("Token không được tìm thấy trong biến môi trường DISCORD_TOKEN!")
+
+intents = discord.Intents.default()
+intents.message_content = True
+
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
     print(f"Bot đã sẵn sàng và đang hoạt động với tên {bot.user}")
 
-# Giữ bot hoạt động
-keep_alive()
-
-bot.run("MTM5NDAyNjgxMjc5OTA2MjA3Ng.G4DSCu.J9NL-8-UF2WgUo4GrXRZfcWFEj_FSVz3wBCBOY)
+bot.run(token)
