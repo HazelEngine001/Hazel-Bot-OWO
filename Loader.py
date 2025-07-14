@@ -635,6 +635,12 @@ token = os.getenv('DISCORD_TOKEN')
 if token is None:
     raise ValueError("Token không được tìm thấy trong biến môi trường DISCORD_TOKEN!")
 
+@bot.command()
+async def test(ctx):
+    await ctx.send("Bot đang hoạt động!")
+
+
+
 # Khởi tạo bot
 intents = discord.Intents.default()
 intents.message_content = True
