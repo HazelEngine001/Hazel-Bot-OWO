@@ -6,6 +6,8 @@ import asyncio
 import time  # Thư viện time để quản lý cooldown
 import os
 import datetime  # Thêm thư viện datetime để sử dụng giờ
+from discord.ext import commands
+from keep_alive import keep_alive
 
 # Lưu cooldown của từng user
 user_cooldowns = {}  # user_id: timestamp
@@ -578,13 +580,18 @@ async def setup(bot):
     await bot.add_cog(Bank(bot))
     await bot.add_cog(Give(bot))
     await bot.add_cog(Blackjack(bot))
-
-# Sử dụng setup_hook để tải cog khi bot khởi động
-async def on_ready():
-    print(f"✅ Logged in as {bot.user}!")
-    await setup(bot)
-
 bot.setup_hook = on_ready
 
-# Chạy bot
-bot.run("MTM5NDAyNjgxMjc5OTA2MjA3Ng.G4DSCu.J9NL-8-UF2WgUo4GrXRZfcWFEj_FSVz3wBCBOY")  # Thay YOUR_BOT_TOKEN bằng token thật của bạn!
+intents = discord.Intents.default()
+intents.message_content = True
+
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+@bot.event
+async def on_ready():
+    print(f"Bot đã sẵn sàng và đang hoạt động với tên {bot.user}")
+
+# Giữ bot hoạt động
+keep_alive()
+
+bot.run("MTM5NDAyNjgxMjc5OTA2MjA3Ng.G4DSCu.J9NL-8-UF2WgUo4GrXRZfcWFEj_FSVz3wBCBOY)
