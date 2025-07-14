@@ -34,7 +34,8 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     print(f"Bot đã sẵn sàng và đang hoạt động với tên {bot.user}")
 
-keep_alive.keep_alive()  # Giữ bot luôn online
+# Gọi keep_alive() để giữ bot online
+keep_alive()  # Sử dụng hàm này để giữ bot luôn hoạt động
 
 # Chạy bot
 bot.run(token)
