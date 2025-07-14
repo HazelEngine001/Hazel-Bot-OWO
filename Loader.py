@@ -9,6 +9,32 @@ import datetime  # Thêm thư viện datetime để sử dụng giờ
 from dotenv import load_dotenv
 from discord.ext import commands
 from keep_alive import keep_alive
+import os
+import discord
+from discord.ext import commands
+from dotenv import load_dotenv
+
+# Tải các biến môi trường từ file .env (nếu có)
+load_dotenv()
+
+# Lấy token từ biến môi trường
+token = os.getenv('DISCORD_TOKEN')
+
+if token is None:
+    raise ValueError("Token không được tìm thấy trong biến môi trường DISCORD_TOKEN!")
+
+# Khởi tạo bot
+intents = discord.Intents.default()
+intents.message_content = True
+
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+@bot.event
+async def on_ready():
+    print(f"Bot đã sẵn sàng và đang hoạt động với tên {bot.user}")
+
+# Chạy bot
+bot.run(token)
 
 # Lưu cooldown của từng user
 user_cooldowns = {}  # user_id: timestamp
@@ -608,25 +634,3 @@ if token is None:
 # Khởi tạo bot
 intents = discord.Intents.default()
 intents.message_content = True
-
-# Tải biến môi trường từ file .env (nếu có)
-load_dotenv()
-
-# Lấy token từ biến môi trường
-token = os.getenv('DISCORD_TOKEN')
-
-if token is None:
-    raise ValueError("Token không được tìm thấy trong biến môi trường DISCORD_TOKEN!")
-
-# Khởi tạo bot
-intents = discord.Intents.default()
-intents.message_content = True
-
-bot = commands.Bot(command_prefix="!", intents=intents)
-
-@bot.event
-async def on_ready():
-    print(f"Bot đã sẵn sàng và đang hoạt động với tên {bot.user}")
-
-# Chạy bot
-bot.run(token)
