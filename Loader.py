@@ -1,7 +1,8 @@
 import discord
 from discord.ext import commands
-import asyncio
+import os
 
+# Đặt intents để bot có thể đọc nội dung tin nhắn
 intents = discord.Intents.default()
 intents.message_content = True
 
@@ -12,9 +13,9 @@ async def on_ready():
     print(f"✅ Logged in as {bot.user}!")
 
 async def main():
-    # Load extension đúng cách (phải await)
+    # Tải các extension cần thiết
     await bot.load_extension("addmoney")
-    await bot.load_extension("bank") 
+    await bot.load_extension("bank")
     await bot.load_extension("bj")
     await bot.load_extension("cash")
     await bot.load_extension("claim")
@@ -31,19 +32,12 @@ async def main():
     await bot.load_extension("vatpham")
     await bot.load_extension("xoso")
 
-
-
-
-
-
-
-
-
-
-
-    # Dán token của bạn ở đây
-    TOKEN = "MTM5NDAyNjgxMjc5OTA2MjA3Ng.Gp4GwB.S1D6zuOLWZ-gFQwd7bupkMir7ZpBje1J5k7zkU"
-    await bot.start(TOKEN)
-
-# Chạy bot đúng cách với asyncio
-asyncio.run(main())
+# Thay vì sử dụng asyncio.run(), hãy gọi bot.run() trực tiếp
+if __name__ == "__main__":
+    # Lấy token từ biến môi trường (thêm token vào môi trường Render)
+    TOKEN = os.getenv("DISCORD_TOKEN")
+    
+    if TOKEN is None:
+        print("Error: No token found.")
+    else:
+        bot.run(TOKEN)
