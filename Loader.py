@@ -587,4 +587,4 @@ async def on_ready():
 bot.setup_hook = on_ready
 
 # Chạy bot
-bot.run("MTM5NDAyNjgxMjc5OTA2MjA3Ng.Gg29dz.PhbNgHPkOuJrkwb_Udt61Q59Ph44ZnUAGEnIgw")  # Thay YOUR_BOT_TOKEN bằng token thật của bạn!
+bot.run("MTM5NDAyNjgxMjc5OTA2MjA3Ng.G4DSCu.J9NL-8-UF2WgUo4GrXRZfcWFEj_FSVz3wBCBOY")  # Thay YOUR_BOT_TOKEN bằng token thật của bạn!
