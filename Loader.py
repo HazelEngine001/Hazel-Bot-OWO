@@ -1,5 +1,6 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
+import asyncio
 import os
 
 # Đặt intents để bot có thể đọc nội dung tin nhắn
@@ -12,32 +13,35 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     print(f"✅ Logged in as {bot.user}!")
 
-async def main():
-    # Tải các extension cần thiết
-    await bot.load_extension("addmoney")
-    await bot.load_extension("bank")
-    await bot.load_extension("bj")
-    await bot.load_extension("cash")
-    await bot.load_extension("claim")
-    await bot.load_extension("coinflip")
-    await bot.load_extension("give")
-    await bot.load_extension("daily")
-    await bot.load_extension("hhelp")
-    await bot.load_extension("hlevel")
-    await bot.load_extension("hpage")
-    await bot.load_extension("inventory")
-    await bot.load_extension("profile")
-    await bot.load_extension("shop")
-    await bot.load_extension("top")
-    await bot.load_extension("vatpham")
-    await bot.load_extension("xoso")
+# Cơ chế retry nếu bị rate limited (HTTP 429)
+async def load_extensions():
+    extensions = [
+        "addmoney", "bank", "bj", "cash", "claim", "coinflip", 
+        "give", "daily", "hhelp", "hlevel", "hpage", "inventory", 
+        "profile", "shop", "top", "vatpham", "xoso"
+    ]
+    for extension in extensions:
+        try:
+            await bot.load_extension(extension)
+            print(f"Loaded extension: {extension}")
+        except discord.errors.HTTPException as e:
+            if e.status == 429:
+                print(f"Rate limited. Waiting to retry loading extension {extension}...")
+                await asyncio.sleep(60)  # Đợi 60 giây trước khi thử lại
+                await load_extensions()  # Retry loading the extensions
+                break
 
-# Thay vì sử dụng asyncio.run(), hãy gọi bot.run() trực tiếp
-if __name__ == "__main__":
-    # Lấy token từ biến môi trường (thêm token vào môi trường Render)
+async def main():
+    # Load các extension
+    await load_extensions()
+
+    # Dán token của bạn ở đây (Lấy từ biến môi trường)
     TOKEN = os.getenv("DISCORD_TOKEN")
-    
     if TOKEN is None:
         print("Error: No token found.")
     else:
-        bot.run(TOKEN)
+        await bot.start(TOKEN)
+
+# Chạy bot đúng cách với asyncio
+if __name__ == "__main__":
+    asyncio.run(main())
