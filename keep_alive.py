@@ -1,6 +1,6 @@
-import os
 from flask import Flask
 import threading
+import os
 
 app = Flask('')
 
